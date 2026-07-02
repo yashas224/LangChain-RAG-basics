@@ -23,4 +23,14 @@ https://smith.langchain.com/public/e66fec82-011b-4f90-8a5f-e0dc8c8b17a9/r/019f20
 
 
 ### using native  LangChain Chains
-retrieveWithLangChainExpressionLanguage()
+createRetrieveChainWithLangChainExpressionLanguage()
+
+langSmith trace - https://smith.langchain.com/public/787fad6e-10e8-4de8-85f6-95e9f7f7d397/r/019f21a2-65e3-7da2-9b23-cc5acf4b11d8
+
+RAG retrieval process <br>
+input query -> two branches to get the <br>
+context: [input-> retrieval -> format ] <br>
+ question: [input] <br>
+
+-> feed into prompt template -> feed into LLM -> Parse output
+![](assets/demo2a.png)

@@ -1,23 +1,23 @@
 import os
+
 from dotenv import load_dotenv
 from langchain.messages import HumanMessage
+from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import OpenAIEmbeddings,ChatOpenAI
+from langchain_core.runnables import RunnableParallel, RunnablePassthrough
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_pinecone import PineconeVectorStore
-from langchain_core.documents import Document
 
 load_dotenv()
 
-print('initialization process')
-llm  = ChatOpenAI(model="gpt-5")
-embeddings = OpenAIEmbeddings(
-model="text-embedding-ada-002")
-index=os.getenv("VECTOR_STORE_INDEX_NAME")
+print("initialization process")
+llm = ChatOpenAI(model="gpt-5")
+embeddings = OpenAIEmbeddings(model="text-embedding-ada-002")
+index = os.getenv("VECTOR_STORE_INDEX_NAME")
 vector_store = PineconeVectorStore(index_name=index, embedding=embeddings)
 retriever = vector_store.as_retriever(search_kwargs={"k": 3})
 
-StringOutputParser
 
 prompt = """
 You are a helpful AI assistant.
@@ -37,41 +37,55 @@ Answer:
 """
 prompt = ChatPromptTemplate.from_template(prompt)
 
+
+def format_docs(revelant_doc):
+    string_doc_list = [doc.page_content for doc in revelant_doc]
+    context = "\n\n".join(string_doc_list)
+    return context
+
+
 def retrieveWithoutLangChainExpressionLanguage(query):
     print("retrieveWithoutLangChainExpressionLanguage")
     #  retrieve
-    revelant_doc : list[Document] = retriever.invoke(query)
+    revelant_doc: list[Document] = retriever.invoke(query)
 
     print(f"revelant_doc {revelant_doc}")
     string_doc_list = [doc.page_content for doc in revelant_doc]
     context = "\n\n".join(string_doc_list)
 
-
     #  Augment
 
-    message = prompt.invoke({
-        'context':context,'question':query
-    })
+    message = prompt.invoke({"context": context, "question": query})
 
     #  Generate
 
-    response= llm.invoke(message)
+    response = llm.invoke(message)
 
     print(f"revelant_doc {revelant_doc}")
-    print("--"* 60)
+    print("--" * 60)
     print("Response")
-
 
     print(response.content)
 
 
-def retrieveWithLangChainExpressionLanguage(query):
+def createRetrieveChainWithLangChainExpressionLanguage():
+    retrieval_chain = (
+        RunnableParallel(
+            context=retriever | format_docs, question=RunnablePassthrough()
+        )
+        | prompt
+        | llm
+        | StrOutputParser()
+    )
 
-    pass
+    return retrieval_chain
 
 
-if(__name__ == '__main__'):
-    query = 'What is pinecone in machine learning ??'
-    retrieveWithoutLangChainExpressionLanguage(query)
+if __name__ == "__main__":
+    query = "What is pinecone in machine learning ??"
+    # retrieveWithoutLangChainExpressionLanguage(query)
 
-
+    print("Starting RAG process")
+    rag_chain = createRetrieveChainWithLangChainExpressionLanguage()
+    result = rag_chain.invoke(query)
+    print(f"Result:  {result}")
